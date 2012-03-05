@@ -9,3 +9,5 @@
 
 (define settings (make-hash))
 (update settings parsed)
+
+(provide settings)

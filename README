@@ -1,3 +1,4 @@
-You run lazyplay.rkt from the directory with your media files in it
+Alter lazyplay.sexp to tune the paths to your computer
+You then run lazyplay.rkt from the directory with your media files in it
 Configure lazyplay.sexp with the file extensions you want and the arguments you want
 Change the arguments for mplayer between files via the terminal input (this will be started when you run lazyplay.rkt)

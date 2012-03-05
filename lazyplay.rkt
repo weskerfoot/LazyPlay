@@ -90,7 +90,7 @@
 
 ; (play (play-list) played)
 (define (controller)
-    (let * ((input (read (current-input-port))))
+    (let* ((input (read (current-input-port))))
     (cond ((eof-object? input))
     (else
         (printf "output: ~A\n" input)

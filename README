@@ -1,0 +1,6 @@
+You run "(play (play-list) played)" in lazyplay.rkt and specify the filetype as the first argument to the script
+
+Working on: 
+Putting some configuration in a file (parsed with S-Expressions)
+The ability to control the media player arguments between files via a REPL
+More finely tuned control over what files get played and which don't

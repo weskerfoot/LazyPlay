@@ -1,0 +1,4 @@
+(
+(player mplayer)
+(filetype avi)
+)

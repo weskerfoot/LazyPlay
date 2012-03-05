@@ -1,7 +1,8 @@
 #! /usr/bin/env racket
 #lang racket
 
- (require racket/system)
+(require racket/system)
+(require "helpers.rkt")
 
 (define args (vector->list (current-command-line-arguments)))
 ; args: filename, mplayer-args
@@ -9,12 +10,6 @@
 
 (define mplcmd (string->path "/usr/bin/mplayer")) ; command used to play files
  ; output file to /dev/null/
-
-(define (partial f x) 
-    (lambda (y) (f x y)))
-
-(define (flip f)
-    (lambda (y x) (f x y)))
 
 (define (file-list) ; list of files in the current working directory
     (map path->string ; get the strings from the list of paths
@@ -53,14 +48,6 @@
                     (hash-set! table fname #t)) (play-list))
                 table))
 
-; updates a hashtable with a bunch of filenames
-; (update played (list "one" "two"))
-(define (update htable fnames)
-    (cond ((null? fnames) htable)
-    (else (map (lambda (fname)
-        (hash-set! htable fname #f)) fnames)
-        htable)))
-
 ; list of new files that have been seen
 (define (new-files sett files)
     (filter 
@@ -88,7 +75,7 @@
         (let* ((newfs (new-files played (play-list))))
             (play (append (cdr fnames) newfs) (update played newfs))))))
 
-; (play (play-list) played)
+(play (play-list) played)
 (define (controller)
     (let* ((input (read (current-input-port))))
     (cond ((eof-object? input))

@@ -1,4 +1,2 @@
-(
-("player" "mplayer")
-("filetype" "avi")
-)
+(("player" "mplayer")
+("filetypes" ("avi" "mp4")))

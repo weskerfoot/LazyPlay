@@ -6,13 +6,11 @@
 (require "config_parser.rkt")
 
 (define args (vector->list (current-command-line-arguments)))
-; args: filename, mplayer-args
-; optional: directory
-(hash-ref settings "args" "")
+
 (define file-types (make-hash))
 (define media-player (string->path (hash-ref settings "player" "/usr/bin/mplayer")))
 (define player-args (hash-ref settings "args" ""))
-(update file-types (hash-ref settings "file-types" '(("avi" #t))))
+(update file-types (hash-ref settings "filetypes" '(("avi" #t))))
 
 (define (file-list) ; list of files in the current working directory
     (map path->string ; get the strings from the list of paths
@@ -86,19 +84,20 @@
     (cond 
         ((compose not thread-running?) player-thread ; if the thread is not running then return
         '()))
+    (display "> ")
     (let* ((input (read-line (current-input-port) 'linefeed)))
     input
     (cond ((eof-object? input) '())
     (else
         (thread-send player-thread input)
         (controller player-thread)))))
-
+(play-list)
 (define player-thread (thread (lambda () (play (play-list) played player-args))))
 (define controller-thread (thread (lambda () (controller player-thread))))
 
 ; check to see if the player is running, and if not then kill the controller
 (define (check)
-    (sleep 20)
+    ; (sleep 20)
     (cond (((compose not thread-running?) player-thread) (kill-thread controller-thread))
     (else (check))))
 

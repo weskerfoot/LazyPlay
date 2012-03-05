@@ -1,3 +1,3 @@
 (("player" "/usr/bin/mplayer")
-("filetypes" (("avi" #t) ("mp4" #t)))
-("args" "-ss 5000"))
+("filetypes" (("avi" #t) ("mp4" #t) ("mkv" #t)))
+("args" ""))

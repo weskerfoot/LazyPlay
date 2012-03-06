@@ -32,15 +32,9 @@
 (define (play-list) 
     (sort-paths (filter-paths file-types (file-list)))) ; first commandline argument is the filename
 
-; sortgetter, gets the episode number and converts it to an integer
-(define (sortgetter file-name)
-    (string->number 
-        (second (regexp-match #rx"E([0-9])*" file-name))))
-
 ; sort the paths
 (define (sort-paths paths)
-  (sort paths <
-        #:key sortgetter))
+  (sort paths string<?))
 
 ; abusing hash tables to be sets
 (define played 
@@ -58,11 +52,11 @@
 ; (define (controller pid out)
 
 (define (play-files filenames args)
-        (let* ((nullport 
-            (open-output-file (string->path "/dev/null") #:exists 'append))) ; we don't want any output from the process
-                (call-with-values
-                (lambda () (subprocess  nullport #f nullport media-player (car filenames) args))
-                list))) ; convert the 4 return values into a list
+    (let* ((nullport 
+        (open-output-file (string->path "/dev/null") #:exists 'append))) ; we don't want any output from the process
+            (call-with-values
+            (lambda () (subprocess  nullport #f nullport media-player (car filenames) args))
+            list))) ; convert the 4 return values into a list
 
 (define (get-args message)
     (cond ((false? message) player-args)

@@ -2,15 +2,16 @@
 #lang racket
 
 (require racket/system)
+(require racket/pretty)
 (require "helpers.rkt")
 (require "config_parser.rkt")
 
 (define args (vector->list (current-command-line-arguments)))
 
-(define file-types (make-hash))
 (define media-player (string->path (hash-ref settings "player" "/usr/bin/mplayer")))
 (define player-args (hash-ref settings "args" ""))
-(update file-types (hash-ref settings "filetypes" '(("avi" #t))))
+(define file-types
+    (update (make-hash) (hash-ref settings "filetypes" '(("avi" #t)))))
 
 (define (file-list) ; list of files in the current working directory
     (map path->string ; get the strings from the list of paths
@@ -55,44 +56,45 @@
     (let* ((nullport 
         (open-output-file (string->path "/dev/null") #:exists 'append))) ; we don't want any output from the process
             (call-with-values
-            (lambda () (subprocess  nullport #f nullport media-player (car filenames) args))
+            (lambda () (subprocess nullport #f nullport media-player (car filenames) args))
             list))) ; convert the 4 return values into a list
 
-(define (get-args message)
-    (cond ((false? message) player-args)
+(define (get-args message args)
+    (cond ((false? message) args)
     (else message)))
 
 (define (play fnames played args)
     (cond ((null? fnames) '())
     (else 
         (let* ((results (play-files fnames args))) ; get the pid and the 3 i/o ports
-            ; send the other thread the new pid here
-            ; and the output port for piping input to the process
-            ; (thread-send controller-thread ((third results) (first results)))
-            (subprocess-wait (first results))
-            (close-output-port (third results)))
-        (let* ((newfs (new-files played (play-list))))
-            (play (append (cdr fnames) newfs) (update played newfs) (get-args (thread-try-receive)))))))
+            (subprocess-wait (first results)) ; block until a new file is started
+            (close-output-port (third results))) 
+        (let* ((newfs (new-files played (play-list)))) ; get new list of files
+            (play 
+                (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
+                (update played newfs) ; update the set of played files
+                (get-args (thread-try-receive) args)))))) ; check for new arguments from controller
 
 (define (controller player-thread)
     (cond 
         ((compose not thread-running?) player-thread ; if the thread is not running then return
         '()))
-    (display "> ")
+    (display "> ") ; TODO; add gnu readline support
     (let* ((input (read-line (current-input-port) 'linefeed)))
     input
-    (cond ((eof-object? input) '())
+    (cond ((eof-object? input) (kill-thread player-thread)) ; check if received EOF, and kill player-thread
     (else
         (thread-send player-thread input)
         (controller player-thread)))))
-(play-list)
+
 (define player-thread (thread (lambda () (play (play-list) played player-args))))
 (define controller-thread (thread (lambda () (controller player-thread))))
 
 ; check to see if the player is running, and if not then kill the controller
 (define (check)
     ; (sleep 20)
-    (cond (((compose not thread-running?) player-thread) (kill-thread controller-thread))
+    (cond (((compose not thread-running?) player-thread) 
+        (kill-thread controller-thread))
     (else (check))))
 
 (check)

@@ -12,5 +12,7 @@
 
 (define (flip f)
     (lambda (y x) (f x y)))
+    
+(define nowhere (open-output-nowhere 'nowhere #t))
 
 (provide (all-defined-out))

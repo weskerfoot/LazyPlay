@@ -7,7 +7,7 @@
     (read ip))
 (close-input-port ip)
 
-(define settings (make-hash))
-(update settings parsed)
+(define settings
+    (update (make-hash) parsed))
 
 (provide settings)

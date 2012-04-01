@@ -72,7 +72,7 @@
         (let* ((newfs (new-files played (play-list)))) ; get new list of files
             (play 
                 (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
-                (update played newfs) ; update the set of played files
+                (update played (map (compose reverse (partial list #f)) newfs)) ; update the set of played files
                 (get-args (thread-try-receive) args)))))) ; check for new arguments from controller
 
 (define (controller player-thread)

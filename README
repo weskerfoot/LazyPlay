@@ -1,4 +1,11 @@
 Alter lazyplay.sexp to tune the paths to your computer
-You then run lazyplay.rkt from the directory with your media files in it
 Configure lazyplay.sexp with the file extensions you want and the arguments you want
+Then move lazyplay.sexp to /etc/lazyplay.sexp (make sure it is readable by your user)
 Change the arguments for mplayer between files via the terminal input (this will be started when you run lazyplay.rkt)
+e.g.
+
+> -fs
+>
+
+This will make mplayer use the fullscreen argument on the rest of the files
+If you want to change it back to using no arguments, then just hit enter again, or enter a new set of arguments

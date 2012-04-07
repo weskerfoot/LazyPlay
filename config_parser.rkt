@@ -2,7 +2,7 @@
 #lang racket
 (require "helpers.rkt")
 
-(define ip (open-input-file "/home/wes/lisp/lazyplay/lazyplay.sexp"))
+(define ip (open-input-file "/etc/lazyplay.sexp"))
 (define parsed
     (read ip))
 (close-input-port ip)

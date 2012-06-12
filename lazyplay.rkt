@@ -9,7 +9,7 @@
 (define args (vector->list (current-command-line-arguments)))
 
 (define media-player (string->path (hash-ref settings "player" "/usr/bin/mplayer")))
-(define player-args (hash-ref settings "args" ""))
+(define player-args (hash-ref settings "args" '()))
 (define file-types
     (update (make-hash) (hash-ref settings "filetypes" '(("avi" #t)))))
 
@@ -56,12 +56,14 @@
     (let* ((nullport 
         (open-output-file (string->path "/dev/null") #:exists 'append))) ; we don't want any output from the process
             (call-with-values
-            (lambda () (subprocess nullport #f nullport media-player (car filenames) args))
+            (lambda () (apply subprocess (append
+                                          (list nullport #f nullport media-player (car filenames))
+                                          args)))
             list))) ; convert the 4 return values into a list
 
 (define (get-args message args)
     (cond ((false? message) args)
-    (else message)))
+    (else (regexp-split #px"\\s" message))))
 
 (define (play fnames played args)
     (cond ((null? fnames) '())
@@ -80,7 +82,7 @@
         ((compose not thread-running?) player-thread ; if the thread is not running then return
         '()))
     (display "> ") ; TODO; add gnu readline support
-    (let* ((input (read-line (current-input-port) 'linefeed)))
+    (let* [(input (read-line (current-input-port) 'linefeed))]
     input
     (cond ((eof-object? input) (kill-thread player-thread)) ; check if received EOF, and kill player-thread
     (else

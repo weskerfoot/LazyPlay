@@ -1,5 +1,9 @@
 #! /usr/bin/env racket
 #lang racket
+;; New features
+;; Better filetype handling
+;; Ability to skip forward and backwards in the playlist
+
 
 (require racket/system)
 (require racket/pretty)
@@ -20,11 +24,9 @@
 ; check if a filename has a desired suffix
 (define (check-suffix file-types)
     (compose
-        (partial hash-has-key? file-types)
-        (lambda (x) 
-            (let* 
-                ((len (string-length x) ))
-                (substring x (- len 3) len)))))
+        ((curry hash-has-key?) file-types)
+        last
+        ((curry regexp-split) #px"\\.")))
 
 ; filter out filenames without the desired suffix
 (define (filter-paths file-types paths)
@@ -47,7 +49,7 @@
 ; list of new files that have been seen
 (define (new-files sett files)
     (filter 
-        (compose not (partial hash-has-key? played))
+        (compose not ((curry hash-has-key?) played))
         files))
 
 ; (define (controller pid out)
@@ -74,7 +76,7 @@
         (let* ((newfs (new-files played (play-list)))) ; get new list of files
             (play 
                 (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
-                (update played (map (compose reverse (partial list #f)) newfs)) ; update the set of played files
+                (update played (map (compose reverse ((curry list) #f)) newfs)) ; update the set of played files
                 (get-args (thread-try-receive) args)))))) ; check for new arguments from controller
 
 (define (controller player-thread)

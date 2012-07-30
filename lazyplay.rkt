@@ -63,9 +63,27 @@
                                           args)))
             list))) ; convert the 4 return values into a list
 
+;; gets all of the available data from the mailbox
+(define (parse-new-data new-data next)
+  (match new-data
+    [#f #f]
+    [ht
+     (letrec ([inner (λ (acc)
+                 (match (next)
+                   [#f acc]
+                   [new-hash
+                    (match (hash-ref new-hash 'arguments)
+                      ; the case that there is no arguments...
+                      [#f (hash-set! acc 'new-files (append (hash-ref acc 'new-files) (hash-ref new-hash 'new-files)))
+                          (inner acc)]
+                           ; if there are arguments...
+                      [_ (hash-set! acc 'arguments (hash-ref new-hash 'arguments))
+                         (inner acc)])]))])
+       (inner ht))]))
+
 (define (get-args message args)
     (cond ((false? message) args)
-    (else (regexp-split #px"\\s" message))))
+    (else message)))
 
 (define (play fnames played args)
     (cond ((null? fnames) '())
@@ -73,11 +91,35 @@
         (let* ((results (play-files fnames args))) ; get the pid and the 3 i/o ports
             (subprocess-wait (first results)) ; block until a new file is started
             (close-output-port (third results))) 
-        (let* ((newfs (new-files played (play-list)))) ; get new list of files
-            (play 
+        (let* ([new-dir-files (new-files played (play-list))]
+               [new-data (parse-new-data (thread-try-receive) thread-try-receive)]) ; get new list of files
+            (match new-data
+              [#f (play (append (cdr fnames) new-dir-files) 
+                        (update played (map (compose reverse ((curry list) #f)) new-dir-files))
+                        args)]
+              [_ (let ([newfs (append new-dir-files (hash-ref new-data 'new-files))])
+               (play 
                 (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
                 (update played (map (compose reverse ((curry list) #f)) newfs)) ; update the set of played files
-                (get-args (thread-try-receive) args)))))) ; check for new arguments from controller
+                (get-args (hash-ref new-data 'arguments) args)))]))))) ; check for new arguments from controller
+
+(define (parse-command cmd)
+  (match (regexp-split #px"\\s" cmd)
+    [(list-rest "cmds" xs) 
+     (let ([result (make-hash)])
+     (hash-set! result 'arguments xs)
+     (hash-set! result 'new-files '())
+       result)]
+    [(list-rest "add" xs)
+     (let ([result (make-hash)])
+     (hash-set! result 'arguments #f)
+     (hash-set! result 'new-files (list (string-join xs "")))
+       result)]
+    [_ (let ([result (make-hash)])
+         (hash-set! result 'arguments #f)
+         (hash-set! result 'new-files '())
+         result)]))
+
 
 (define (controller player-thread)
     (cond 
@@ -88,7 +130,7 @@
     input
     (cond ((eof-object? input) (kill-thread player-thread)) ; check if received EOF, and kill player-thread
     (else
-        (thread-send player-thread input)
+        (thread-send player-thread (parse-command input))
         (controller player-thread)))))
 
 (define player-thread (thread (lambda () (play (play-list) played player-args))))

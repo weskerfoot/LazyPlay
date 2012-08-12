@@ -17,6 +17,9 @@
 (define file-types
     (update (make-hash) (hash-ref settings "filetypes" '(("avi" #t)))))
 
+(define (update! newfs)
+  (update played (map (compose reverse ((curry list) #f)) newfs)))
+
 (define (file-list) ; list of files in the current working directory
     (map path->string ; get the strings from the list of paths
         (directory-list (current-directory))))
@@ -86,7 +89,19 @@
     (else message)))
 
 (define (play fnames played args)
-    (cond ((null? fnames) '())
+    (cond ((null? fnames)
+           (let* ([new-data (thread-receive)])
+      (match (list (hash-ref new-data 'new-dir)
+                   (hash-ref new-data 'new-files)
+                   (hash-ref new-data 'arguments))
+        [(list #f a #f)
+         (update! a)
+         (play a played player-args)]
+        [(list a (list) #f) (current-directory a)
+                            (update! (play-list))
+                            (play (play-list) played player-args)]
+        [a (display a)])))
+      
     (else 
         (let* ((results (play-files fnames args))) ; get the pid and the 3 i/o ports
             (subprocess-wait (first results)) ; block until a new file is started
@@ -100,26 +115,24 @@
               [_ (let ([newfs (append new-dir-files (hash-ref new-data 'new-files))])
                (play 
                 (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
-                (update played (map (compose reverse ((curry list) #f)) newfs)) ; update the set of played files
+                (update! newfs) ; update the set of played files
                 (get-args (hash-ref new-data 'arguments) args)))]))))) ; check for new arguments from controller
 
+;; returns a hash with the commands for the player thread
+(define (parsed-hash args newdir newfiles)
+  (let ([result (make-hash)])
+    (hash-set! result 'arguments args)
+    (hash-set! result 'new-dir newdir)
+    (hash-set! result 'new-files newfiles)
+    result))
+
+;; parses a command to be sent to the player thread
 (define (parse-command cmd)
   (match (regexp-split #px"\\s" cmd)
-    [(list-rest "cmds" xs) 
-     (let ([result (make-hash)])
-     (hash-set! result 'arguments xs)
-     (hash-set! result 'new-files '())
-       result)]
-    [(list-rest "add" xs)
-     (let ([result (make-hash)])
-     (hash-set! result 'arguments #f)
-     (hash-set! result 'new-files (list (string-join xs "")))
-       result)]
-    [_ (let ([result (make-hash)])
-         (hash-set! result 'arguments #f)
-         (hash-set! result 'new-files '())
-         result)]))
-
+    [(list-rest "cmds" xs) (parsed-hash xs #f '())]
+    [(list-rest "add" xs) (parsed-hash #f #f (list (string-join xs "")))]
+    [(list-rest "chdir" xs) (parsed-hash #f (string-join xs "") '())]
+    [_ (parsed-hash #f #f '())]))
 
 (define (controller player-thread)
     (cond 
@@ -133,7 +146,8 @@
         (thread-send player-thread (parse-command input))
         (controller player-thread)))))
 
-(define player-thread (thread (lambda () (play (play-list) played player-args))))
+(define player-thread (thread (lambda () 
+                                (play (play-list) played player-args))))
 (define controller-thread (thread (lambda () (controller player-thread))))
 
 ; check to see if the player is running, and if not then kill the controller

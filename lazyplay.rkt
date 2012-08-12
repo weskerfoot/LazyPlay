@@ -9,6 +9,7 @@
 (require racket/pretty)
 (require "helpers.rkt")
 (require "config_parser.rkt")
+(require "playlist_server.rkt")
 
 (define args (vector->list (current-command-line-arguments)))
 
@@ -146,9 +147,14 @@
         (thread-send player-thread (parse-command input))
         (controller player-thread)))))
 
+
+
 (define player-thread (thread (lambda () 
                                 (play (play-list) played player-args))))
+
 (define controller-thread (thread (lambda () (controller player-thread))))
+
+(define server-thread (thread (λ () (make-server player-thread parse-command))))
 
 ; check to see if the player is running, and if not then kill the controller
 (define (check)

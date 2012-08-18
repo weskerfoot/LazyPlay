@@ -1,15 +1,11 @@
 #! /usr/bin/env racket
 #lang racket
-;; New features
-;; Better filetype handling
-;; Ability to skip forward and backwards in the playlist
-
-
 (require racket/system)
 (require racket/pretty)
 (require "helpers.rkt")
 (require "config_parser.rkt")
 (require "playlist_server.rkt")
+(require "command_parser.rkt")
 
 (define args (vector->list (current-command-line-arguments)))
 
@@ -67,73 +63,61 @@
                                           args)))
             list))) ; convert the 4 return values into a list
 
-;; gets all of the available data from the mailbox
-(define (parse-new-data new-data next)
-  (match new-data
-    [#f #f]
-    [ht
-     (letrec ([inner (λ (acc)
-                 (match (next)
-                   [#f acc]
-                   [new-hash
-                    (match (hash-ref new-hash 'arguments)
-                      ; the case that there is no arguments...
-                      [#f (hash-set! acc 'new-files (append (hash-ref acc 'new-files) (hash-ref new-hash 'new-files)))
-                          (inner acc)]
-                           ; if there are arguments...
-                      [_ (hash-set! acc 'arguments (hash-ref new-hash 'arguments))
-                         (inner acc)])]))])
-       (inner ht))]))
+;; function to check if a file should be removed from the playlist
+(define playlist-remove?
+  (λ (a b)
+    (regexp-match? (regexp (format "^~a$" a)) b)))
 
-(define (get-args message args)
-    (cond ((false? message) args)
-    (else message)))
+(define (play-react previous-files played args cmd next)
+  (define (continue-playing new-prev args res)
+      (play-react (append new-prev args res) 
+              played args 
+              (parse-command (next))
+              next))
+  
+  (let ([inner (λ (new-previous)
+                 (match cmd
+                   [(add-resources s resources) (update! resources) 
+                                                (continue-playing new-previous args resources)]
+                   
+                   [(add-commands s commands) (continue-playing new-previous commands '())]
+                   
+                   [(remove-command s resources) (remove* resources previous-files playlist-remove?) 
+                                                 (continue-playing new-previous args resources)]
+                   
+                   [(chdir s directory)
+                    (current-directory (car directory))
+                    (update! (play-list))
+                    (play (play-list) played args)]
+                   
+                   [(modify s name new-content) s]
+                   
+                   [_ (play new-previous played args)]))])
+               (match previous-files ; check if there are previous files
+                 ['() (inner '())]
+                 [_ (inner (cdr previous-files))])))
 
 (define (play fnames played args)
     (cond ((null? fnames)
            (let* ([new-data (thread-receive)])
-      (match (list (hash-ref new-data 'new-dir)
-                   (hash-ref new-data 'new-files)
-                   (hash-ref new-data 'arguments))
-        [(list #f a #f)
-         (update! a)
-         (play a played player-args)]
-        [(list a (list) #f) (current-directory a)
-                            (update! (play-list))
-                            (play (play-list) played player-args)]
-        [a (display a)])))
-      
+             (play-react fnames played args new-data thread-try-receive)))
     (else 
-        (let* ((results (play-files fnames args))) ; get the pid and the 3 i/o ports
+        (let* ([results (play-files fnames args)]) ; get the pid and the 3 i/o ports
             (subprocess-wait (first results)) ; block until a new file is started
-            (close-output-port (third results))) 
+            (close-output-port (third results)))
+        
         (let* ([new-dir-files (new-files played (play-list))]
-               [new-data (parse-new-data (thread-try-receive) thread-try-receive)]) ; get new list of files
+               [new-data (thread-try-receive)]) ; get new command information
+          (update! new-dir-files)
             (match new-data
               [#f (play (append (cdr fnames) new-dir-files) 
-                        (update played (map (compose reverse ((curry list) #f)) new-dir-files))
+                        played
                         args)]
-              [_ (let ([newfs (append new-dir-files (hash-ref new-data 'new-files))])
-               (play 
-                (append (cdr fnames) newfs) ; append new files to the tail of the list of old files 
-                (update! newfs) ; update the set of played files
-                (get-args (hash-ref new-data 'arguments) args)))]))))) ; check for new arguments from controller
-
-;; returns a hash with the commands for the player thread
-(define (parsed-hash args newdir newfiles)
-  (let ([result (make-hash)])
-    (hash-set! result 'arguments args)
-    (hash-set! result 'new-dir newdir)
-    (hash-set! result 'new-files newfiles)
-    result))
-
-;; parses a command to be sent to the player thread
-(define (parse-command cmd)
-  (match (regexp-split #px"\\s" cmd)
-    [(list-rest "cmds" xs) (parsed-hash xs #f '())]
-    [(list-rest "add" xs) (parsed-hash #f #f (list (string-join xs "")))]
-    [(list-rest "chdir" xs) (parsed-hash #f (string-join xs "") '())]
-    [_ (parsed-hash #f #f '())]))
+              [_ (play-react (append (cdr fnames ) new-dir-files)
+                             played
+                             args
+                             new-data
+                             thread-try-receive)])))))
 
 (define (controller player-thread)
     (cond 
@@ -146,8 +130,6 @@
     (else
         (thread-send player-thread (parse-command input))
         (controller player-thread)))))
-
-
 
 (define player-thread (thread (lambda () 
                                 (play (play-list) played player-args))))

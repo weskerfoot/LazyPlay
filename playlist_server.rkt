@@ -4,6 +4,7 @@
 (require web-server/templates)
 (require web-server/dispatch)
 (require "links.rkt")
+(require "command_parser.rkt")
 (require xml)
 
 (define (make-server player-thread parse-command)
@@ -42,8 +43,7 @@
   (let ([name (hash-ref
                (list->hash (url-query (request-uri req)))
                'name)])
-    (display name)
-    (thread-send player-thread (parse-command (format "add ~a" name)))
+    (thread-send player-thread (add-resources "add" (list name)))
     (response/xexpr (string->xexpr (include-template "./sent.html")))))
 
 ;; Lists all the available categories
@@ -62,6 +62,7 @@
  lazyplay-dispatch
  #:servlet-regexp #px""
  #:launch-browser? #f
+ #:banner? #f
  #:port 8080))
 
 (provide make-server)

@@ -68,6 +68,21 @@
   (λ (a b)
     (regexp-match? (regexp (format "^~a$" a)) b)))
 
+;;function to run when a chdir command is received
+(define (chdir-command dir args)
+  ;; if the command fails to run with the updated directory
+  ;; then say so, and continue running
+  (with-handlers ([exn:fail? 
+                   (λ (_) 
+                     (display 
+                      (format "No such directory ~a"
+                              (car dir)))
+                     (play '() played args))])
+  (current-directory (car dir)) 
+    (update! (play-list))
+    (play (play-list) played args)))
+
+; the reactor procedure for commands
 (define (play-react previous-files played args cmd next)
   (define (continue-playing new-prev args res)
       (play-react (append new-prev args res) 
@@ -85,10 +100,7 @@
                    [(remove-command s resources) (remove* resources previous-files playlist-remove?) 
                                                  (continue-playing new-previous args resources)]
                    
-                   [(chdir s directory)
-                    (current-directory (car directory))
-                    (update! (play-list))
-                    (play (play-list) played args)]
+                   [(chdir s directory) (chdir-command directory args)]
                    
                    [(modify s name new-content) s]
                    
@@ -97,11 +109,12 @@
                  ['() (inner '())]
                  [_ (inner (cdr previous-files))])))
 
+;; the main play procedure
 (define (play fnames played args)
     (cond ((null? fnames)
            (let* ([new-data (thread-receive)])
              (play-react fnames played args new-data thread-try-receive)))
-    (else 
+    (else
         (let* ([results (play-files fnames args)]) ; get the pid and the 3 i/o ports
             (subprocess-wait (first results)) ; block until a new file is started
             (close-output-port (third results)))
@@ -119,6 +132,7 @@
                              new-data
                              thread-try-receive)])))))
 
+;; the procedure to control the command line thingy
 (define (controller player-thread)
     (cond 
         ((compose not thread-running?) player-thread ; if the thread is not running then return

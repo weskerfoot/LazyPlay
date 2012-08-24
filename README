@@ -8,7 +8,7 @@ e.g.
 >
 
 This will make mplayer (or whatever player you have configured LP to use) use the fullscreen argument on the rest of the files
-If you want to change it back to using no arguments, then just hit used the "cmds" command again.
+If you want to change it back to using no arguments, then just use the "cmds" command again.
 
 If you want to add a new file to the playlist:
 

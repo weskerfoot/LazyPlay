@@ -28,7 +28,7 @@
        [(list-rest "cmds" xs) (add-commands "cmds" xs)]
        [(list-rest "add" xs) (add-resources "add" (list (string-join xs "")))]
        [(list-rest "chdir" xs) (chdir "chdir" xs)]
-       [(list-rest "remove" xs) (remove-command "rem" xs)]
+       [(list-rest "rm" xs) (remove-command "rem" xs)]
        [_ (command #f)])]
     [_ (command #f)]))
 

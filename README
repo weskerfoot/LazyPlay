@@ -4,8 +4,24 @@ Then move lazyplay.sexp to /etc/lazyplay.sexp (make sure it is readable by your 
 Change the arguments for mplayer between files via the terminal input (this will be started when you run lazyplay.rkt)
 e.g.
 
-> -fs
+> cmds -fs
 >
 
-This will make mplayer use the fullscreen argument on the rest of the files
-If you want to change it back to using no arguments, then just hit enter again, or enter a new set of arguments
+This will make mplayer (or whatever player you have configured LP to use) use the fullscreen argument on the rest of the files
+If you want to change it back to using no arguments, then just hit used the "cmds" command again.
+
+If you want to add a new file to the playlist:
+
+> add /foo/bar.avi
+
+If you want to remove a file from the playlist:
+
+> rm bar.avi (bar.avi can be a regular expression)
+
+If you want to change to a different working directory:
+
+> chdir /foo/bar
+
+If you want to selectively add files from a directory:
+
+> ls /foo/bar

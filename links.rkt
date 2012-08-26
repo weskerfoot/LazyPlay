@@ -81,7 +81,6 @@
 
 (define (string->json data)
   (json->jsexpr (regexp-replace* #px"\\s" (port->string data) "")))
-
 ;; Turns a normal blip video url into the direct link
 (define (blipurl->direct-url link)
   (let* ([data (string->json (get-pure-port (string->url (format "~a?skin=json&version=2&no_wrap=1" link))))]
@@ -95,18 +94,22 @@
     (string->json data)))
 
 ;;Gets all of a user's videos
-(define (retrieve-videos username)
-  (let* ([user-url (string->url (format "http://blip.tv/~a?pagelen=10&skin=json&version=2&no_wrap=1" username))]
+(define (retrieve-videos username page-n)
+  (let* ([user-url (string->url (format "http://blip.tv/~a?pagelen=5&skin=json&version=2&no_wrap=1&page=~a" username page-n))]
          [data (string->json (get-pure-port user-url))])
     (format
-     "<html><body>~a</body></html>"
+     "<html><body>~a <p></p><a href=\"http://localhost:8080/~a?p=~a\">Previous</a><a href=\"http://localhost:8080/~a?p=~a\">Next</a></body></html>"
      (format "~a" (string-join
                            (map (λ (x) 
                                  (format "<a href=\"http://localhost:8080/add?name=~a\">~a</a>"
                                          (form-urlencoded-encode
                                           (blipurl->direct-url (hash-ref x 'url)))
                                          (hash-ref x 'title))) data)
-                           "<br />")))))
+                           "<br />"))
+     username
+     (- page-n 1)
+     username
+     (+ 1 page-n))))
 
 ;(retrieve-videos "slowbeef")
 

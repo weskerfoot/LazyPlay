@@ -5,6 +5,7 @@
 (require web-server/dispatch)
 (require "links.rkt")
 (require "command_parser.rkt")
+(require "cacher.rkt")
 (require xml)
 
 (define (make-server player-thread parse-command)
@@ -32,11 +33,19 @@
    [("add") add-name]
    [else user-list]))
 
+;(check-cache 
+;       username 
+;       'user 
+;       (λ () (retrieve-videos username)) 
+;       identity)
+  
 ;; Returns all of the videos for a user
 (define (user-list req)
   (response/xexpr
    (string->xexpr
-    (retrieve-videos (path/param-path (car (url-path (request-uri req))))))))
+    (let [(username (path/param-path (car (url-path (request-uri req)))))
+          (page-n (hash-ref (list->hash (url-query (request-uri req))) 'p))]
+      (retrieve-videos username (string->number page-n))))))
 
 ;; Adds a new resource to the lazyplay queue
 (define (add-name req)

@@ -94,17 +94,15 @@
   (make-hash (hash-map hsh (λ (a b) (cons a b)))))
 
 ;; 
-(define (check-cache info type get-data updater)
-  (match type
-    ['user (let* [(username (user-cache-params-username info))
-                  (pagenum (user-cache-params-pagenum info))]
+(define (check-cache info get-data updater)
+  (match info
+    [(user-cache-params username pagenum)
            (match (user-cached? username pagenum)
              ['update (let ([message (immuthsh->muthsh (couchdb-get conn username))])
                         (cache-user message username pagenum get-data))]
              [#f (cache-user (make-hash) username pagenum get-data)]
-             [result result]))]))
-     
-       
+             [result result])]))
+
 ;(define (check-user-cache username page-number get-data)
 ;  (match (
 

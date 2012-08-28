@@ -33,12 +33,6 @@
    [("add") add-name]
    [else user-list]))
 
-;(check-cache 
-;       username 
-;       'user 
-;       (λ () (retrieve-videos username)) 
-;       identity)
-  
 ;; Returns all of the videos for a user
 (define (user-list req)
   (response/xexpr
@@ -47,7 +41,6 @@
           (page-n (hash-ref (list->hash (url-query (request-uri req))) 'p))]
       (check-cache (user-cache-params username
                                       (string->number page-n))
-                   'user
                    (λ () (retrieve-videos username (string->number page-n)))
                    identity)))))
 

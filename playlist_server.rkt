@@ -40,7 +40,7 @@
     (let [(username (path/param-path (car (url-path (request-uri req)))))
           (page-n (hash-ref (list->hash (url-query (request-uri req))) 'p))]
       (check-cache (user-cache-params username
-                                      (string->number page-n))
+                                      page-n)
                    (λ () (retrieve-videos username (string->number page-n)))
                    identity)))))
 

@@ -12,8 +12,6 @@
    #:password "password")
    database-name))
 
-(define number->symbol (compose string->symbol number->string))
-
 (define conn (database-connection "blipcache"))
 
 (define (cached? id)
@@ -28,8 +26,8 @@
    (λ (object)
      (match object
        [#f #f]
-       [(? (λ (obj) (not (hash-has-key? obj (number->symbol page-num))))) 'update]
-       [_ (hash-ref object (number->symbol page-num))]))
+       [(? (λ (obj) (not (hash-has-key? obj (string->symbol page-num))))) 'update]
+       [_ (hash-ref object (string->symbol page-num))]))
      cached?) username))
 
 (define category-cached?
@@ -61,7 +59,7 @@
 (define (cache-user message username page-num get-data)
   (let ([data (get-data)])
     (hash-set! message '_id username)
-    (hash-set! message (number->symbol page-num) data)
+    (hash-set! message (string->symbol page-num) data)
     (hash-set! message 'last_updated (current-inexact-milliseconds))
     (couchdb-put conn message)
     data))

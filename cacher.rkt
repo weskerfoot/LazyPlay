@@ -37,24 +37,15 @@
        [#f #f]
        [_ (hash-ref obj 'content)]))
    cached?))
-  
 
-;; type is the type of data to cache
-;; info is the actual name of the data to be cached
-;; get-data is the proc that gets the data from the database
-
-
-
-(define (cache info type get-data)
-  (match type
-    ['user 
+(define (cache-category info get-data)
      (let* ([message (make-hash)]
             [data (get-data)])
        (hash-set! message '_id info)
        (hash-set! message 'content data)
        (hash-set! message 'last_updated (current-inexact-milliseconds))
      (couchdb-put conn message)
-       data)]))
+       data))
 
 (define (cache-user message username page-num get-data)
   (let ([data (get-data)])

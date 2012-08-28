@@ -111,6 +111,11 @@
      username
      (+ 1 page-n))))
 
+;; Message when we get to the beginning/end of a user's list
+(define (no-more username)
+  (format "<html><body>No more left<br></br><a href=\"http://localhost:8080/~a?p=1\">Beginning</a></body></html>"
+          username))
+
 ;(retrieve-videos "slowbeef")
 
-(provide get-category retrieve-videos)
+(provide get-category retrieve-videos no-more)

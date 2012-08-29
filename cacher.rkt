@@ -80,7 +80,7 @@
 (struct user-cache-params (username pagenum))
 
 (define (immuthsh->muthsh hsh)
-  (make-hash (hash-map hsh (λ (a b) (cons a b)))))
+  (make-hash (hash-map hsh cons)))
 
 ;; 
 (define (check-cache info get-data updater)

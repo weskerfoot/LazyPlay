@@ -4,6 +4,7 @@
 (require (planet neil/htmlprag:1:5))
 (require net/url)
 (require net/uri-codec)
+(require "hostname-info.rkt")
 
 ;; Blip.tv search and download server
 
@@ -98,22 +99,26 @@
   (let* ([user-url (string->url (format "http://blip.tv/~a?pagelen=5&skin=json&version=2&no_wrap=1&page=~a" username page-n))]
          [data (string->json (get-pure-port user-url))])
     (format
-     "<html><body>~a <p></p><a href=\"http://localhost:8080/~a?p=~a\">Previous</a><a href=\"http://localhost:8080/~a?p=~a\">Next</a></body></html>"
+     "<html><body>~a <p></p><a href=\"http://~a:8080/~a?p=~a\">Previous</a><a href=\"http://~a:8080/~a?p=~a\">Next</a></body></html>"
      (format "~a" (string-join
                            (map (λ (x) 
-                                 (format "<a href=\"http://localhost:8080/add?name=~a\">~a</a>"
+                                 (format "<a href=\"http://~a:8080/add?name=~a\">~a</a>"
+                                         hostname
                                          (form-urlencoded-encode
                                           (blipurl->direct-url (hash-ref x 'url)))
                                          (hash-ref x 'title))) data)
                            "<br />"))
+     hostname
      username
      (- page-n 1)
+     hostname
      username
      (+ 1 page-n))))
 
 ;; Message when we get to the beginning/end of a user's list
 (define (no-more username)
-  (format "<html><body>No more left<br></br><a href=\"http://localhost:8080/~a?p=1\">Beginning</a></body></html>"
+  (format "<html><body>No more left<br></br><a href=\"http://~a:8080/~a?p=1\">Beginning</a></body></html>"
+          hostname
           username))
 
 ;(retrieve-videos "slowbeef")

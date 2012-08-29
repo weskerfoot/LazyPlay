@@ -1,4 +1,4 @@
 #lang racket
-(define hostname "192.168.0.100")
+(define hostname "localhost")
 
 (provide hostname)

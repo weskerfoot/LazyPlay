@@ -52,8 +52,9 @@
     (hash-set! message '_id username)
     (hash-set! message (string->symbol page-num) data)
     (hash-set! message 'last_updated (current-inexact-milliseconds))
-    (couchdb-put conn message)
-    data))
+    (with-handlers ([exn:couchdb:conflict? (λ(x) data)])
+      (couchdb-put conn message)
+      data)))
 
 ;; Checks if a document needs updating
 ;; Info -> String

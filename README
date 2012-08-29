@@ -25,3 +25,5 @@ If you want to change to a different working directory:
 If you want to selectively add files from a directory:
 
 > ls /foo/bar
+
+Then add 1 2 3 ... and so on (the number of each file listed)

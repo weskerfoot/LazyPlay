@@ -17,9 +17,9 @@
 (define (update! newfs)
   (update played (map (compose reverse ((curry list) #f)) newfs)))
 
-(define (file-list) ; list of files in the current working directory
+(define (file-list directory) ; list of files in the current working directory
     (map path->string ; get the strings from the list of paths
-        (directory-list (current-directory))))
+        (directory-list directory)))
 
 ; check if a filename has a desired suffix
 (define (check-suffix file-types)
@@ -32,8 +32,8 @@
 (define (filter-paths file-types paths)
     (filter (check-suffix file-types) paths))
 
-(define (play-list) 
-    (sort-paths (filter-paths file-types (file-list)))) ; first commandline argument is the filename
+(define (play-list directory) 
+    (sort-paths (filter-paths file-types (file-list directory)))) ; first commandline argument is the filename
 
 ; sort the paths
 (define (sort-paths paths)
@@ -43,7 +43,7 @@
 (define played 
     (let* ((table (make-hash)))
                 (map (lambda (fname) 
-                    (hash-set! table fname #t)) (play-list))
+                    (hash-set! table fname #t)) (play-list (current-directory)))
                 table))
 
 ; list of new files that have been seen
@@ -79,8 +79,8 @@
                               (car dir)))
                      (play '() played args))])
   (current-directory (car dir)) 
-    (update! (play-list))
-    (play (play-list) played args)))
+    (update! (play-list (current-directory)))
+    (play (play-list (current-directory)) played args)))
 
 ; the reactor procedure for commands
 (define (play-react previous-files played args cmd next)
@@ -119,7 +119,7 @@
             (subprocess-wait (first results)) ; block until a new file is started
             (close-output-port (third results)))
         
-        (let* ([new-dir-files (new-files played (play-list))]
+        (let* ([new-dir-files (new-files played (play-list (current-directory)))]
                [new-data (thread-try-receive)]) ; get new command information
           (update! new-dir-files)
             (match new-data
@@ -132,6 +132,23 @@
                              new-data
                              thread-try-receive)])))))
 
+;; "ls" command used to add files selectively
+(define (cmd-ls dir)
+  (let* ([playlist (map ((compose
+                          (curry string-append)
+                          ((curry format) "~a/"))
+                         (car dir)) (play-list (car dir)))]
+        [number-list (for/list ([i (length playlist)]) i)]
+        [output-list (map cons playlist number-list)])
+    (display output-list)
+    (let ([input (read-line (current-input-port))])
+      (match (regexp-split #px"\\s" input)
+        [(list-rest "add" xs)
+         (let* ([xs (apply set (map string->number xs))]
+                [added (filter (λ (x) (set-member? xs (cdr x))) output-list)])
+         (add-resources "add" (map car added)))]
+        [_ (add-resources "add" (list))]))))
+ 
 ;; the procedure to control the command line thingy
 (define (controller player-thread)
     (cond 
@@ -139,14 +156,15 @@
         '()))
     (display "> ") ; TODO; add gnu readline support
     (let* [(input (read-line (current-input-port) 'linefeed))]
-    input
-    (cond ((eof-object? input) (kill-thread player-thread)) ; check if received EOF, and kill player-thread
-    (else
-        (thread-send player-thread (parse-command input))
-        (controller player-thread)))))
+    (match input
+      [(? eof-object?) (kill-thread player-thread)]
+      [(? ((curry regexp-match-exact?) #px"ls.*")) (thread-send player-thread (cmd-ls (cdr (regexp-split #px"\\s" input))))
+                                                   (controller player-thread)]
+      [_ (thread-send player-thread (parse-command input))
+         (controller player-thread)])))
 
 (define player-thread (thread (lambda () 
-                                (play (play-list) played player-args))))
+                                (play (play-list (current-directory)) played player-args))))
 
 (define controller-thread (thread (lambda () (controller player-thread))))
 

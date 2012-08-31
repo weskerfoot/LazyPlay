@@ -48,11 +48,17 @@
 (define add-breaks
   (sxml:modify (list "a" 'insert-following `(br ""))))
 
+(define (fixlink node)
+  (let* ([oldlink (cadar (sxml:attr-list node))]
+         [newlink (format "http://~a:8080~a?p=1" hostname oldlink)])
+    (sxml:set-attr node (list 'href newlink))))
+    
+
 (define (parse-category-chunk chunk)
   (let* ([links (sxpath "//li/div/h3/a")]
          [descriptions (sxpath "//p")]
          [html (port->string (get-pure-port (string->url chunk)))]
-         [result (links (html->shtml html))])
+         [result (map fixlink (links (html->shtml html)))])
   (match result
     ['() '()]
     [_ 
@@ -74,9 +80,9 @@
       pages)))
 
 (define (get-category category)
-  (define-values (drama.next drama.url drama.category drama.id) (make-category-url category 1))
+  (define-values (cat.next cat.url cat.category cat.id) (make-category-url category 1))
         (string-join
-         (reverse (get-category-list drama.next (drama.url) drama.category)) ""))
+         (reverse (get-category-list cat.next (cat.url) cat.category)) ""))
 
 ;; Category Stuff ends...
 

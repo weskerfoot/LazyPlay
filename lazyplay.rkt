@@ -141,7 +141,7 @@
         [number-list (for/list ([i (length playlist)]) i)]
         [output-list (map cons playlist number-list)])
     (display (string-join (map (λ (xs) (format "~a ~a" (car xs) (cdr xs))) output-list) "\n"))
-    (display "\n")
+    (display "\nCommands: add 1 2 3 ...\n$> ")
     (let ([input (read-line (current-input-port))])
       (match (regexp-split #px"\\s" input)
         [(list-rest "add" xs)

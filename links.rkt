@@ -69,7 +69,7 @@
 (define (get-category-list next url category)
   (let ([pages '()])
     (letrec ([acc-pages (λ (n)
-                (match (eq? n *MAXPAGES*)
+                (match (= n *MAXPAGES*)
                     [#t pages]
                     [#f (let ([res (parse-category-chunk (next))])
                           (match (empty? res) 

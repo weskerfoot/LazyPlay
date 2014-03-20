@@ -1,3 +1,5 @@
+Note: this is pretty terrible code, it was written while I was still learning Racket, so if anything it needs refactoring
+
 Alter lazyplay.sexp to tune the paths to your computer
 Configure lazyplay.sexp with the file extensions you want and the arguments you want
 Then move lazyplay.sexp to /etc/lazyplay.sexp (make sure it is readable by your user)
